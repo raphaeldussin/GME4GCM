@@ -1,5 +1,7 @@
 import matplotlib.pyplot as _plt
 import numpy as _np
+#import cartopy.crs as ccrs
+from mpl_toolkits.basemap import Basemap
 
 class editmask(object):
 
@@ -14,7 +16,8 @@ class editmask(object):
 			dummy, i = _np.unravel_index(itmp,self._xc.shape)
 			j, dummy = _np.unravel_index(jtmp,self._yc.shape)
 			self.mask[j, i] = 1 - self.mask[j, i]
-			self._pc = _plt.pcolor(self._xc,self._yc,self.mask,edgecolor='k')
+			self._pc = _plt.pcolormesh(self._xc,self._yc,self.mask,edgecolor='k')
+			#self._pc = _plt.imshow(self.mask,origin='lower',extent=(self.lonmin,self.lonmax,self.latmin,self.latmax))
 			_plt.draw()
 
 	def _on_key(self, event):
@@ -28,7 +31,41 @@ class editmask(object):
 		self._xc = lon
 		self._yc = lat
 		self.mask = mask
-		self._pc = _plt.pcolor(self._xc,self._yc,self.mask,edgecolor='k')
+		ones = _np.ones(self.mask.shape)
+		ones[:] = None
+		# dimension of map
+		lonmin=self._xc.min()
+		lonmax=self._xc.max()
+		latmin=self._yc.min()
+		latmax=self._yc.max()
+		self.lonmin=self._xc.min()
+		self.lonmax=self._xc.max()
+		self.latmin=self._yc.min()
+		self.latmax=self._yc.max()
+		padding_x=_np.abs(lonmax-lonmin)/50
+		padding_y=_np.abs(latmax-latmin)/50
+		lonmin=lonmin-padding_x ; lonmax=lonmax+padding_x
+		latmin=latmin-padding_y ; latmax=latmax+padding_y
+
+		print lonmin,lonmax,latmin,latmax
+		
+		# cartopy
+		#self._ax = _plt.axes(projection=ccrs.PlateCarree())
+                #self._ax.set_extent([lonmin,lonmax,latmin,latmax])
+
+		self._ax = Basemap(projection='cyl',llcrnrlat=latmin,urcrnrlat=latmax,\
+                                         llcrnrlon=lonmin,urcrnrlon=lonmax,resolution='l')
+
+                #self._ax.set_extent([0,90,0,30])
+                #self._ax.coastlines(resolution='50m')
+
+                #self._ax.coastlines() # cartopy
+
+                self._ax.drawcoastlines()
+
+		self._pc = _plt.pcolormesh(self._xc,self._yc,self.mask,edgecolor='k')
+		#self._pc = _plt.pcolormesh(self._xc,self._yc,ones,edgecolor='k')
+		#self._pc = _plt.imshow(self.mask,origin='lower',extent=(self.lonmin,self.lonmax,self.latmin,self.latmax))
 
 		_plt.connect('button_press_event', self._on_click)
 		_plt.connect('key_press_event', self._on_key)
@@ -38,8 +75,8 @@ class editmask(object):
 		return None
 		
 
-lon = _np.arange(10,20)
-lat = _np.arange(20,30)
+lon = _np.arange(-170,-120)
+lat = _np.arange(20,60)
 lon2d, lat2d = _np.meshgrid(lon,lat)
 nx,ny = lon2d.shape
 mask = _np.zeros((nx-1,ny-1))
